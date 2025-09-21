@@ -1,0 +1,47 @@
+name: jet-ai-sdk
+docker_env:
+  image: jet-trainer:latest
+
+entry_points:
+  train:
+    parameters:
+      model: {type: str}
+      dataset_id: {type: str}
+      split: {type: str, default: "train"}
+      text_field: {type: str, default: "text"}
+      engine: {type: str, default: "auto"}
+      output_dir: {type: str, default: "/workspace/outputs/run"}
+      epochs: {type: int, default: 1}
+      per_device_batch: {type: int, default: 1}
+      grad_accum: {type: int, default: 8}
+      lr: {type: float, default: 2e-4}
+      max_seq: {type: int, default: 2048}
+      merge_weights: {type: bool, default: false}
+      do_sample: {type: bool, default: true}
+      temperature: {type: float, default: 0.7}
+      top_p: {type: float, default: 0.9}
+      top_k: {type: int, default: 50}
+    command: >
+      python -m jet.cli train
+      --model {model} --dataset_id {dataset_id} --split {split}
+      --text_field {text_field} --engine {engine}
+      --output_dir {output_dir} --epochs {epochs}
+      --per_device_batch {per_device_batch} --grad_accum {grad_accum}
+      --lr {lr} --max_seq {max_seq} --merge_weights {merge_weights}
+      --do_sample {do_sample} --temperature {temperature}
+      --top_p {top_p} --top_k {top_k}
+
+  evaluate:
+    parameters:
+      model_dir_or_id: {type: str}
+    command: >
+      python -m jet.cli evaluate --model_dir_or_id {model_dir_or_id}
+
+  package:
+    parameters:
+      base_model: {type: str}
+      adapter_dir: {type: str}
+      out_dir: {type: str}
+    command: >
+      python -m jet.cli package
+      --base_model {base_model} --adapter_dir {adapter_dir} --out_dir {out_dir}
