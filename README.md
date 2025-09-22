@@ -2,7 +2,7 @@
 
 # Jet AI 🚀
 
-**Democratize AI model ownership - Build your own custom models for the price of a meal**
+**Democratize AI model ownership - Build your own custom models in a day rather than months, and with a budget of $30 - $80**
 
 Stop being a "wrapper" business. Own your AI models instead of paying thousands in API fees to Big Tech.
 
