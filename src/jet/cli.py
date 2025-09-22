@@ -1,4 +1,5 @@
 import argparse, os, json
+from pathlib import Path
 import mlflow
 from mlflow import MlflowClient
 from datasets import load_dataset
@@ -12,8 +13,29 @@ def train_cmd(args):
     with mlflow.start_run():
         mlflow.log_params(vars(args))
         if os.path.isdir(args.dataset_id):
-            raise SystemExit("Local dataset dirs not supported in MVP; use HF hub id.")
-        ds = load_dataset(args.dataset_id, split=args.split, streaming=False)
+            print("📁 Loading local dataset...")
+            # For local datasets, we'll try to load them as a directory
+            # This is a basic implementation - in production you'd want more robust handling
+            try:
+                from datasets import Dataset
+                import json
+                
+                # Try to load as JSONL first
+                jsonl_files = list(Path(args.dataset_id).glob("*.jsonl"))
+                if jsonl_files:
+                    data = []
+                    for file in jsonl_files:
+                        with open(file, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                data.append(json.loads(line.strip()))
+                    ds = Dataset.from_list(data)
+                else:
+                    # Fallback to loading as directory
+                    ds = load_dataset(args.dataset_id, split=args.split, streaming=False)
+            except Exception as e:
+                raise SystemExit(f"Failed to load local dataset '{args.dataset_id}': {e}")
+        else:
+            ds = load_dataset(args.dataset_id, split=args.split, streaming=False)
         text_field = args.text_field or "text"
         class Opts:
             model=args.model; output_dir=args.output_dir

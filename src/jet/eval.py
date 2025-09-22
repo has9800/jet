@@ -17,15 +17,25 @@ def _safe_int(v) -> Optional[int]:
     return v if isinstance(v, int) else None
 
 def _build_gen_kwargs(tok, overrides: Dict[str, Any]) -> Dict[str, Any]:
+    do_sample = overrides.pop("do_sample", True)
     cfg = {
-        "do_sample": overrides.pop("do_sample", True),
-        "temperature": overrides.pop("temperature", 0.7),
-        "top_p": overrides.pop("top_p", 0.9),
-        "top_k": overrides.pop("top_k", 50),
-        "repetition_penalty": overrides.pop("repetition_penalty", 1.1),
-        "no_repeat_ngram_size": overrides.pop("no_repeat_ngram_size", 2),
+        "do_sample": do_sample,
         "max_new_tokens": overrides.pop("max_new_tokens", 64),
     }
+    
+    # Only add sampling parameters if do_sample is True
+    if do_sample:
+        cfg.update({
+            "temperature": overrides.pop("temperature", 0.7),
+            "top_p": overrides.pop("top_p", 0.9),
+            "top_k": overrides.pop("top_k", 50),
+        })
+    
+    # Add other parameters regardless of sampling mode
+    cfg.update({
+        "repetition_penalty": overrides.pop("repetition_penalty", 1.1),
+        "no_repeat_ngram_size": overrides.pop("no_repeat_ngram_size", 2),
+    })
     pad_id = _safe_int(getattr(tok, "pad_token_id", None)) or _safe_int(getattr(tok, "eos_token_id", None))
     eos_id = _safe_int(getattr(tok, "eos_token_id", None))
     if pad_id is not None:

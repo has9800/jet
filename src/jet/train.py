@@ -1,10 +1,14 @@
 import importlib
 import warnings
+import traceback
 
 try:
     import mlflow
 except Exception:
     mlflow = None
+
+from .logging import get_logger
+logger = get_logger(__name__)
 
 def _log_params(params: dict):
     if mlflow is not None:
@@ -81,30 +85,54 @@ def has_supported_gpu() -> bool:
         return False
 
 def train_with_options(opts, train_ds, eval_ds=None):
-    user_pref = getattr(opts, "engine", "auto")
-    engine = choose_engine(user_pref)
-    snap = _gpu_env_snapshot()
-    _log_params({"engine_requested": user_pref, "engine_selected": engine})
-    _log_dict(snap, "gpu_env.json")
-    if engine == "unsloth" and not _unsloth_importable():
-        warnings.warn("Unsloth not importable; falling back to HF.")
-        engine = "hf"
-    if engine == "unsloth" and not _gpu_capability_ok():
-        warnings.warn("GPU capability insufficient; falling back to HF.")
-        engine = "hf"
-    if engine == "unsloth":
-        from .engine_unsloth import train as engine_train
-    else:
-        from .engine_hf import train as engine_train
-    job = engine_train(opts, train_ds, eval_ds)
-    merged_dir = None
-    if getattr(opts, "merge_weights", False):
-        try:
-            from .merge import merge_lora
-            merged_dir = f"{opts.output_dir}-merged"
-            merge_lora(opts.model, opts.output_dir, merged_dir)
-        except Exception as e:
-            _log_dict({"merge_error": str(e)}, "merge_error.json")
-            return type("Job", (), {"model_dir": opts.output_dir, "merged_dir": None, "merge_error": str(e)})
-    _log_dict({"model_dir": opts.output_dir, "merged_dir": merged_dir, "engine_used": engine}, "train_outputs.json")
-    return type("Job", (), {"model_dir": opts.output_dir, "merged_dir": merged_dir})
+    """Train a model with the given options and error handling"""
+    try:
+        logger.info(f"Starting training with model: {opts.model}")
+        logger.info(f"Dataset size: {len(train_ds) if hasattr(train_ds, '__len__') else 'unknown'}")
+        
+        user_pref = getattr(opts, "engine", "auto")
+        engine = choose_engine(user_pref)
+        snap = _gpu_env_snapshot()
+        
+        logger.info(f"Selected engine: {engine} (requested: {user_pref})")
+        _log_params({"engine_requested": user_pref, "engine_selected": engine})
+        _log_dict(snap, "gpu_env.json")
+        
+        if engine == "unsloth" and not _unsloth_importable():
+            logger.warning("Unsloth not importable; falling back to HF.")
+            engine = "hf"
+        if engine == "unsloth" and not _gpu_capability_ok():
+            logger.warning("GPU capability insufficient; falling back to HF.")
+            engine = "hf"
+            
+        if engine == "unsloth":
+            from .engine_unsloth import train as engine_train
+        else:
+            from .engine_hf import train as engine_train
+            
+        logger.info("Starting model training...")
+        job = engine_train(opts, train_ds, eval_ds)
+        logger.info("Model training completed successfully")
+        
+        merged_dir = None
+        if getattr(opts, "merge_weights", False):
+            try:
+                logger.info("Merging LoRA weights...")
+                from .merge import merge_lora
+                merged_dir = f"{opts.output_dir}-merged"
+                merge_lora(opts.model, opts.output_dir, merged_dir)
+                logger.info(f"LoRA weights merged to: {merged_dir}")
+            except Exception as e:
+                logger.error(f"Failed to merge LoRA weights: {e}")
+                _log_dict({"merge_error": str(e)}, "merge_error.json")
+                return type("Job", (), {"model_dir": opts.output_dir, "merged_dir": None, "merge_error": str(e)})
+        
+        _log_dict({"model_dir": opts.output_dir, "merged_dir": merged_dir, "engine_used": engine}, "train_outputs.json")
+        logger.info(f"Training completed successfully. Model saved to: {opts.output_dir}")
+        
+        return type("Job", (), {"model_dir": opts.output_dir, "merged_dir": merged_dir})
+        
+    except Exception as e:
+        logger.error(f"Training failed: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise
