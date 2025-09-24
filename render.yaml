@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: jet-ai-api
+    env: python
+    plan: starter
+    buildCommand: pip install jet-ai-sdk[api]
+    startCommand: python -m jet.cli api --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 10000
