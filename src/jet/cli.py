@@ -69,9 +69,31 @@ def package_cmd(args):
     if mlflow.active_run():
         mlflow.log_artifacts(out_dir, artifact_path="merged_dir")
 
+def api_cmd(args):
+    """Start the Jet AI API server"""
+    try:
+        import uvicorn
+        from .api.app import app
+        
+        print(f"🚀 Jet AI API Server starting on http://{args.host}:{args.port}")
+        print(f"📚 Documentation: http://{args.host}:{args.port}/docs")
+        
+        uvicorn.run(
+            app,
+            host=args.host,
+            port=args.port,
+            reload=args.reload,
+            workers=args.workers if not args.reload else 1
+        )
+    except ImportError:
+        print("❌ API dependencies not installed. Install with: pip install jet-ai-sdk[api]")
+        sys.exit(1)
+
 def main():
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(description="Jet AI CLI")
     sub = p.add_subparsers(dest="cmd", required=True)
+    
+    # Training command
     tp = sub.add_parser("train")
     tp.add_argument("--model", required=True)
     tp.add_argument("--dataset_id", required=True)
@@ -90,14 +112,27 @@ def main():
     tp.add_argument("--top_p", type=float, default=0.9)
     tp.add_argument("--top_k", type=int, default=50)
     tp.set_defaults(func=train_cmd)
+    
+    # Evaluation command
     ep = sub.add_parser("evaluate")
     ep.add_argument("--model_dir_or_id", required=True)
     ep.set_defaults(func=evaluate_cmd)
+    
+    # Package command
     pp = sub.add_parser("package")
     pp.add_argument("--base_model", required=True)
     pp.add_argument("--adapter_dir", required=True)
     pp.add_argument("--out_dir", required=True)
     pp.set_defaults(func=package_cmd)
+    
+    # API server command
+    ap = sub.add_parser("api")
+    ap.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    ap.add_argument("--port", type=int, default=8000, help="Port to bind to")
+    ap.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
+    ap.add_argument("--workers", type=int, default=1, help="Number of worker processes")
+    ap.set_defaults(func=api_cmd)
+    
     args = p.parse_args()
     args.func(args)
 

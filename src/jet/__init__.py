@@ -5,6 +5,13 @@ from .sdk.client import JetClient
 from .sdk.training import JetTrainer, quick_train, list_available_models, list_available_datasets
 from .models import CURATED_MODELS, CURATED_DATASETS, get_model_info, validate_model_for_gpu
 
+# API imports (optional)
+try:
+    from .api import app as api_app
+    _API_AVAILABLE = True
+except ImportError:
+    _API_AVAILABLE = False
+
 __all__ = [
     "Evaluator", 
     "compute_rouge", 
@@ -20,3 +27,7 @@ __all__ = [
     "get_model_info",
     "validate_model_for_gpu"
 ]
+
+# Add API app if available
+if _API_AVAILABLE:
+    __all__.append("api_app")

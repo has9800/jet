@@ -157,6 +157,7 @@ trainer.save_model("./my_saved_model")
 
 ## 🚀 Deployment
 
+### **Python SDK**
 ```python
 # Deploy with vLLM for production
 from jet.service.app import deploy_model
@@ -168,6 +169,14 @@ deploy_spec = {
 }
 
 deploy_model(deploy_spec)
+```
+
+### **REST API**
+```bash
+# Start the API server (for frontend integration)
+jet api
+
+# API Documentation: http://localhost:8000/docs
 ```
 
 ## 🧪 Testing
