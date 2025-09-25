@@ -1,0 +1,17 @@
+{
+  "test_user": {
+    "user_id": "test_user",
+    "total_credits": 60.0,
+    "used_credits": 0.0,
+    "last_updated": "2025-09-24 18:21:14",
+    "credit_history": [
+      {
+        "timestamp": "2025-09-24 18:21:14",
+        "type": "addition",
+        "amount": 50.0,
+        "description": "Credit purchase",
+        "balance": 60.0
+      }
+    ]
+  }
+}
